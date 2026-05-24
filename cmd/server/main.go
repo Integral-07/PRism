@@ -9,11 +9,15 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 
-	"github.com/Integral-07/prism/internal/handler/webhook"
+	webhookHandler "github.com/Integral-07/prism/internal/handler/webhook"
+	webhookUC "github.com/Integral-07/prism/internal/usecase/webhook"
 )
 
 func main() {
 	_ = godotenv.Load()
+
+	// TODO: インフラ層実装後に差し替える
+	uc := webhookUC.NewInteractor(nil, nil, nil)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -24,8 +28,7 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	webhookHandler := webhook.NewHandler()
-	r.Post("/webhook", webhookHandler.Handle)
+	r.Post("/webhook", webhookHandler.NewHandler(uc).Handle)
 
 	port := os.Getenv("PORT")
 	if port == "" {
