@@ -46,22 +46,23 @@ handler → usecase → domain ← infrastructure
 
 ### 前提条件
 
-- Go 1.22以上
+- Go 1.23以上
 - GitHub App の作成
 - Gemini API キー
 - Supabase プロジェクト
 
-### 1. 環境変数の設定
+### 1. 依存関係のインストール
+
+```bash
+# 依存パッケージを自動ダウンロード
+go mod download
+```
+
+### 2. 環境変数の設定
 
 ```bash
 cp .env.example .env
 # .envファイルを編集して、各種APIキーを設定
-```
-
-### 2. 依存関係のインストール
-
-```bash
-go mod download
 ```
 
 ### 3. ローカルサーバーの起動
@@ -69,6 +70,8 @@ go mod download
 ```bash
 go run cmd/server/main.go
 ```
+
+サーバーが起動したら `http://localhost:8080/health` でヘルスチェックができます。
 
 ### 4. GitHub Webhookの設定
 
