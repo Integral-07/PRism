@@ -10,10 +10,11 @@ type Interactor struct {
 	pr       PRRepository
 	analyzer AnalyzerUseCase
 	check    CheckRepository
+	label    LabelRepository
 }
 
-func NewInteractor(pr PRRepository, analyzer AnalyzerUseCase, check CheckRepository) *Interactor {
-	return &Interactor{pr: pr, analyzer: analyzer, check: check}
+func NewInteractor(pr PRRepository, analyzer AnalyzerUseCase, check CheckRepository, label LabelRepository) *Interactor {
+	return &Interactor{pr: pr, analyzer: analyzer, check: check, label: label}
 }
 
 func (i *Interactor) Execute(ctx context.Context, input Input) error {
@@ -30,5 +31,9 @@ func (i *Interactor) Execute(ctx context.Context, input Input) error {
 		return err
 	}
 
-	return i.check.PostResult(ctx, input.InstallationID, input.RepoFullName, input.PRNumber, result)
+	if err := i.check.PostResult(ctx, input.InstallationID, input.RepoFullName, input.PRNumber, result); err != nil {
+		return err
+	}
+
+	return i.label.SyncLabels(ctx, input.InstallationID, input.RepoFullName, input.PRNumber, result)
 }

@@ -38,6 +38,16 @@ func (m *mockCheckRepo) PostResult(_ context.Context, _ int64, _ string, _ int, 
 	return m.err
 }
 
+type mockLabelRepo struct {
+	called bool
+	err    error
+}
+
+func (m *mockLabelRepo) SyncLabels(_ context.Context, _ int64, _ string, _ int, _ analyzepr.Output) error {
+	m.called = true
+	return m.err
+}
+
 func TestInteractor_Execute(t *testing.T) {
 	ctx := context.Background()
 	input := webhook.Input{
@@ -57,46 +67,65 @@ func TestInteractor_Execute(t *testing.T) {
 		pr          *mockPRRepo
 		analyzer    *mockAnalyzerUC
 		check       *mockCheckRepo
+		label       *mockLabelRepo
 		wantErr     bool
 		wantChecked bool
+		wantLabeled bool
 	}{
 		{
 			name:        "success",
 			pr:          &mockPRRepo{diff: "diff content"},
 			analyzer:    &mockAnalyzerUC{result: okResult},
 			check:       &mockCheckRepo{},
-			wantErr:     false,
+			label:       &mockLabelRepo{},
 			wantChecked: true,
+			wantLabeled: true,
 		},
 		{
 			name:        "pr repo error",
 			pr:          &mockPRRepo{err: errors.New("github error")},
 			analyzer:    &mockAnalyzerUC{},
 			check:       &mockCheckRepo{},
+			label:       &mockLabelRepo{},
 			wantErr:     true,
 			wantChecked: false,
+			wantLabeled: false,
 		},
 		{
 			name:        "analyzer error",
 			pr:          &mockPRRepo{diff: "diff content"},
 			analyzer:    &mockAnalyzerUC{err: errors.New("gemini error")},
 			check:       &mockCheckRepo{},
+			label:       &mockLabelRepo{},
 			wantErr:     true,
 			wantChecked: false,
+			wantLabeled: false,
 		},
 		{
 			name:        "check repo error",
 			pr:          &mockPRRepo{diff: "diff content"},
 			analyzer:    &mockAnalyzerUC{result: okResult},
 			check:       &mockCheckRepo{err: errors.New("check error")},
+			label:       &mockLabelRepo{},
 			wantErr:     true,
 			wantChecked: true,
+			wantLabeled: false,
+		},
+		{
+			name:        "label repo error",
+			pr:          &mockPRRepo{diff: "diff content"},
+			analyzer:    &mockAnalyzerUC{result: okResult},
+			check:       &mockCheckRepo{},
+			label:       &mockLabelRepo{err: errors.New("label error")},
+			wantErr:     true,
+			wantChecked: true,
+			wantLabeled: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := webhook.NewInteractor(tt.pr, tt.analyzer, tt.check)
+			uc := webhook.NewInteractor(tt.pr, tt.analyzer, tt.check, tt.label)
 			err := uc.Execute(ctx, input)
 
 			if (err != nil) != tt.wantErr {
@@ -104,6 +133,9 @@ func TestInteractor_Execute(t *testing.T) {
 			}
 			if tt.check.called != tt.wantChecked {
 				t.Errorf("wantChecked=%v, got %v", tt.wantChecked, tt.check.called)
+			}
+			if tt.label.called != tt.wantLabeled {
+				t.Errorf("wantLabeled=%v, got %v", tt.wantLabeled, tt.label.called)
 			}
 		})
 	}

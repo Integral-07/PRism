@@ -37,8 +37,9 @@ func main() {
 		llmRepo = gemini.NewLLMRepository(cfg.GeminiAPIKey)
 	}
 
+	labelRepo := infraGitHub.NewLabelRepository(cfg.GitHubAppID, privateKey)
 	analyzerUC := analyzeprUC.NewInteractor(llmRepo)
-	uc := webhookUC.NewInteractor(prRepo, analyzerUC, checkRepo)
+	uc := webhookUC.NewInteractor(prRepo, analyzerUC, checkRepo, labelRepo)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)

@@ -28,3 +28,7 @@ type AnalyzerUseCase interface {
 type CheckRepository interface {
 	PostResult(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output) error
 }
+
+type LabelRepository interface {
+	SyncLabels(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output) error
+}
