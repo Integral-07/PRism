@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Integral-07/prism/internal/domain/entity"
+	analyzepr "github.com/Integral-07/prism/internal/usecase/analyze_pr"
 	"github.com/Integral-07/prism/internal/usecase/webhook"
 )
 
@@ -18,12 +19,12 @@ func (m *mockPRRepo) GetDiff(_ context.Context, _ int64, _ string, _ int) (strin
 	return m.diff, m.err
 }
 
-type mockAnalyzerRepo struct {
-	result webhook.AnalysisResult
+type mockAnalyzerUC struct {
+	result analyzepr.Output
 	err    error
 }
 
-func (m *mockAnalyzerRepo) Analyze(_ context.Context, _, _ string) (webhook.AnalysisResult, error) {
+func (m *mockAnalyzerUC) Execute(_ context.Context, _ analyzepr.Input) (analyzepr.Output, error) {
 	return m.result, m.err
 }
 
@@ -32,7 +33,7 @@ type mockCheckRepo struct {
 	err    error
 }
 
-func (m *mockCheckRepo) PostResult(_ context.Context, _ int64, _ string, _ int, _ webhook.AnalysisResult) error {
+func (m *mockCheckRepo) PostResult(_ context.Context, _ int64, _ string, _ int, _ analyzepr.Output) error {
 	m.called = true
 	return m.err
 }
@@ -45,7 +46,7 @@ func TestInteractor_Execute(t *testing.T) {
 		PRNumber:       1,
 		Title:          "feat: add feature",
 	}
-	okResult := webhook.AnalysisResult{
+	okResult := analyzepr.Output{
 		RiskLevel:        entity.RiskLevelLow,
 		PriorityScore:    1,
 		EstimatedMinutes: 5,
@@ -54,7 +55,7 @@ func TestInteractor_Execute(t *testing.T) {
 	tests := []struct {
 		name        string
 		pr          *mockPRRepo
-		analyzer    *mockAnalyzerRepo
+		analyzer    *mockAnalyzerUC
 		check       *mockCheckRepo
 		wantErr     bool
 		wantChecked bool
@@ -62,7 +63,7 @@ func TestInteractor_Execute(t *testing.T) {
 		{
 			name:        "success",
 			pr:          &mockPRRepo{diff: "diff content"},
-			analyzer:    &mockAnalyzerRepo{result: okResult},
+			analyzer:    &mockAnalyzerUC{result: okResult},
 			check:       &mockCheckRepo{},
 			wantErr:     false,
 			wantChecked: true,
@@ -70,7 +71,7 @@ func TestInteractor_Execute(t *testing.T) {
 		{
 			name:        "pr repo error",
 			pr:          &mockPRRepo{err: errors.New("github error")},
-			analyzer:    &mockAnalyzerRepo{},
+			analyzer:    &mockAnalyzerUC{},
 			check:       &mockCheckRepo{},
 			wantErr:     true,
 			wantChecked: false,
@@ -78,7 +79,7 @@ func TestInteractor_Execute(t *testing.T) {
 		{
 			name:        "analyzer error",
 			pr:          &mockPRRepo{diff: "diff content"},
-			analyzer:    &mockAnalyzerRepo{err: errors.New("claude error")},
+			analyzer:    &mockAnalyzerUC{err: errors.New("gemini error")},
 			check:       &mockCheckRepo{},
 			wantErr:     true,
 			wantChecked: false,
@@ -86,7 +87,7 @@ func TestInteractor_Execute(t *testing.T) {
 		{
 			name:        "check repo error",
 			pr:          &mockPRRepo{diff: "diff content"},
-			analyzer:    &mockAnalyzerRepo{result: okResult},
+			analyzer:    &mockAnalyzerUC{result: okResult},
 			check:       &mockCheckRepo{err: errors.New("check error")},
 			wantErr:     true,
 			wantChecked: true,

@@ -1,14 +1,18 @@
 package webhook
 
-import "context"
+import (
+	"context"
+
+	analyzepr "github.com/Integral-07/prism/internal/usecase/analyze_pr"
+)
 
 type Interactor struct {
 	pr       PRRepository
-	analyzer AnalyzerRepository
+	analyzer AnalyzerUseCase
 	check    CheckRepository
 }
 
-func NewInteractor(pr PRRepository, analyzer AnalyzerRepository, check CheckRepository) *Interactor {
+func NewInteractor(pr PRRepository, analyzer AnalyzerUseCase, check CheckRepository) *Interactor {
 	return &Interactor{pr: pr, analyzer: analyzer, check: check}
 }
 
@@ -18,7 +22,10 @@ func (i *Interactor) Execute(ctx context.Context, input Input) error {
 		return err
 	}
 
-	result, err := i.analyzer.Analyze(ctx, input.Title, diff)
+	result, err := i.analyzer.Execute(ctx, analyzepr.Input{
+		Title: input.Title,
+		Diff:  diff,
+	})
 	if err != nil {
 		return err
 	}
