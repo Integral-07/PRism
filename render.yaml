@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: prism
+    runtime: go
+    buildCommand: go build -o bin/prism ./cmd/server
+    startCommand: ./bin/prism
+    envVars:
+      - key: GITHUB_APP_ID
+        sync: false
+      - key: GITHUB_PRIVATE_KEY
+        sync: false
+      - key: GITHUB_WEBHOOK_SECRET
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PORT
+        value: 8080

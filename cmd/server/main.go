@@ -42,7 +42,7 @@ func main() {
 		w.Write([]byte("ok"))
 	})
 
-	r.Post("/webhook", webhookHandler.NewHandler(uc).Handle)
+	r.With(webhookHandler.VerifySignature(cfg.GitHubWebhookSecret)).Post("/webhook", webhookHandler.NewHandler(uc).Handle)
 
 	log.Printf("server starting on :%s", cfg.Port)
 	log.Fatal(http.ListenAndServe(":"+cfg.Port, r))

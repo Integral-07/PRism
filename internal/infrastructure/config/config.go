@@ -4,13 +4,15 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 type Config struct {
-	GitHubAppID      int64
-	GitHubPrivateKey string
-	GeminiAPIKey     string
-	Port             string
+	GitHubAppID         int64
+	GitHubPrivateKey    string
+	GitHubWebhookSecret string
+	GeminiAPIKey        string
+	Port                string
 }
 
 func Load() (*Config, error) {
@@ -19,9 +21,14 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("GITHUB_APP_ID: %w", err)
 	}
 
-	privateKey := os.Getenv("GITHUB_PRIVATE_KEY")
+	privateKey := strings.ReplaceAll(os.Getenv("GITHUB_PRIVATE_KEY"), `\n`, "\n")
 	if privateKey == "" {
 		return nil, fmt.Errorf("GITHUB_PRIVATE_KEY is required")
+	}
+
+	webhookSecret := os.Getenv("GITHUB_WEBHOOK_SECRET")
+	if webhookSecret == "" {
+		return nil, fmt.Errorf("GITHUB_WEBHOOK_SECRET is required")
 	}
 
 	geminiKey := os.Getenv("GEMINI_API_KEY")
@@ -35,9 +42,10 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
-		GitHubAppID:      appID,
-		GitHubPrivateKey: privateKey,
-		GeminiAPIKey:     geminiKey,
-		Port:             port,
+		GitHubAppID:         appID,
+		GitHubPrivateKey:    privateKey,
+		GitHubWebhookSecret: webhookSecret,
+		GeminiAPIKey:        geminiKey,
+		Port:                port,
 	}, nil
 }
