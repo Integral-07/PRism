@@ -12,6 +12,7 @@ import (
 	"github.com/Integral-07/prism/internal/infrastructure/config"
 	infraGitHub "github.com/Integral-07/prism/internal/infrastructure/github"
 	"github.com/Integral-07/prism/internal/infrastructure/gemini"
+	"github.com/Integral-07/prism/internal/infrastructure/mock"
 	analyzeprUC "github.com/Integral-07/prism/internal/usecase/analyze_pr"
 	webhookUC "github.com/Integral-07/prism/internal/usecase/webhook"
 )
@@ -28,7 +29,13 @@ func main() {
 
 	prRepo := infraGitHub.NewPRRepository(cfg.GitHubAppID, privateKey)
 	checkRepo := infraGitHub.NewCheckRepository(cfg.GitHubAppID, privateKey)
-	llmRepo := gemini.NewLLMRepository(cfg.GeminiAPIKey)
+	var llmRepo analyzeprUC.LLMRepository
+	if cfg.MockLLM {
+		log.Println("using mock LLM")
+		llmRepo = mock.NewLLMRepository()
+	} else {
+		llmRepo = gemini.NewLLMRepository(cfg.GeminiAPIKey)
+	}
 
 	analyzerUC := analyzeprUC.NewInteractor(llmRepo)
 	uc := webhookUC.NewInteractor(prRepo, analyzerUC, checkRepo)

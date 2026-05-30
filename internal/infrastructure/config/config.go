@@ -12,6 +12,7 @@ type Config struct {
 	GitHubPrivateKey    string
 	GitHubWebhookSecret string
 	GeminiAPIKey        string
+	MockLLM             bool
 	Port                string
 }
 
@@ -31,8 +32,10 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("GITHUB_WEBHOOK_SECRET is required")
 	}
 
+	mockLLM := os.Getenv("MOCK_LLM") == "true"
+
 	geminiKey := os.Getenv("GEMINI_API_KEY")
-	if geminiKey == "" {
+	if geminiKey == "" && !mockLLM {
 		return nil, fmt.Errorf("GEMINI_API_KEY is required")
 	}
 
@@ -46,6 +49,7 @@ func Load() (*Config, error) {
 		GitHubPrivateKey:    privateKey,
 		GitHubWebhookSecret: webhookSecret,
 		GeminiAPIKey:        geminiKey,
+		MockLLM:             mockLLM,
 		Port:                port,
 	}, nil
 }
