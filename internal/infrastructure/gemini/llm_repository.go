@@ -23,7 +23,7 @@ func NewLLMRepository(apiKey string) *LLMRepository {
 			if err != nil {
 				return nil, nil, fmt.Errorf("gemini client: %w", err)
 			}
-			model := client.GenerativeModel("gemini-2.0-flash")
+			model := client.GenerativeModel("gemini-2.5-flash")
 			model.GenerationConfig.ResponseMIMEType = "application/json"
 			return model, func() { client.Close() }, nil
 		},
