@@ -3,7 +3,7 @@ package webhook
 import (
 	"context"
 
-	"github.com/Integral-07/prism/internal/domain/entity"
+	analyzepr "github.com/Integral-07/prism/internal/usecase/analyze_pr"
 )
 
 type Input struct {
@@ -11,12 +11,6 @@ type Input struct {
 	RepoFullName   string
 	PRNumber       int
 	Title          string
-}
-
-type AnalysisResult struct {
-	RiskLevel        entity.RiskLevel
-	PriorityScore    int
-	EstimatedMinutes int
 }
 
 type UseCase interface {
@@ -27,10 +21,10 @@ type PRRepository interface {
 	GetDiff(ctx context.Context, installationID int64, repoFullName string, prNumber int) (string, error)
 }
 
-type AnalyzerRepository interface {
-	Analyze(ctx context.Context, title, diff string) (AnalysisResult, error)
+type AnalyzerUseCase interface {
+	Execute(ctx context.Context, input analyzepr.Input) (analyzepr.Output, error)
 }
 
 type CheckRepository interface {
-	PostResult(ctx context.Context, installationID int64, repoFullName string, prNumber int, result AnalysisResult) error
+	PostResult(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output) error
 }
