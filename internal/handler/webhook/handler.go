@@ -2,6 +2,7 @@ package webhook
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	webhookUC "github.com/Integral-07/prism/internal/usecase/webhook"
@@ -44,6 +45,7 @@ func (h *Handler) handlePullRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.uc.Execute(r.Context(), input); err != nil {
+		log.Printf("ERROR: usecase execute: %v", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
