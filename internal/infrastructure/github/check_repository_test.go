@@ -37,7 +37,7 @@ func checkRunHandler(t *testing.T, wantConclusion string) http.HandlerFunc {
 		if body.HeadSHA != "abc123" {
 			t.Errorf("HeadSHA: want abc123, got %s", body.HeadSHA)
 		}
-		if wantConclusion != "" && gh.Ptr(wantConclusion) != nil {
+		if wantConclusion != "" {
 			if body.GetConclusion() != wantConclusion {
 				t.Errorf("conclusion: want %q, got %q", wantConclusion, body.GetConclusion())
 			}
@@ -49,6 +49,7 @@ func checkRunHandler(t *testing.T, wantConclusion string) http.HandlerFunc {
 
 func TestCheckRepository_PostResult(t *testing.T) {
 	ctx := context.Background()
+	defaultCfg := entity.DefaultPrismConfig()
 
 	tests := []struct {
 		name           string
@@ -119,7 +120,7 @@ func TestCheckRepository_PostResult(t *testing.T) {
 			}
 
 			repo := &CheckRepository{clientFor: cf}
-			err := repo.PostResult(ctx, 123, "owner/repo", 1, tt.result)
+			err := repo.PostResult(ctx, 123, "owner/repo", 1, tt.result, defaultCfg)
 
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("wantErr=%v, got err=%v", tt.wantErr, err)
@@ -128,31 +129,72 @@ func TestCheckRepository_PostResult(t *testing.T) {
 	}
 }
 
-func TestFormatSummary(t *testing.T) {
+func TestBuildSummary(t *testing.T) {
+	defaultCfg := entity.DefaultPrismConfig()
+
 	tests := []struct {
 		name   string
 		output analyzepr.Output
+		cfg    entity.PrismConfig
 		checks []string
 	}{
 		{
-			name:   "low risk",
-			output: analyzepr.Output{RiskLevel: entity.RiskLevelLow, PriorityScore: 2, EstimatedMinutes: 10},
-			checks: []string{"low", "2 / 5", "10 min"},
+			name: "summary and review focus shown",
+			output: analyzepr.Output{
+				RiskLevel:        entity.RiskLevelLow,
+				Summary:          "軽微な変更です",
+				ReviewFocus:      []string{"影響範囲を確認"},
+				EstimatedMinutes: 10,
+			},
+			cfg:    defaultCfg,
+			checks: []string{"軽微な変更です", "影響範囲を確認"},
 		},
 		{
-			name:   "high risk",
-			output: analyzepr.Output{RiskLevel: entity.RiskLevelHigh, PriorityScore: 5, EstimatedMinutes: 60},
-			checks: []string{"high", "5 / 5", "60 min"},
+			name: "file priority list shown",
+			output: analyzepr.Output{
+				RiskLevel: entity.RiskLevelHigh,
+				Files: []analyzepr.FileRisk{
+					{Path: "auth/jwt.go", Risk: entity.RiskLevelHigh, Category: "logic", Note: "要確認"},
+				},
+				EstimatedMinutes: 60,
+			},
+			cfg:    defaultCfg,
+			checks: []string{"auth/jwt.go", "logic", "要確認"},
+		},
+		{
+			name: "custom output shown",
+			output: analyzepr.Output{
+				RiskLevel:    entity.RiskLevelLow,
+				CustomOutput: "決済ロジックへの影響なし",
+			},
+			cfg:    defaultCfg,
+			checks: []string{"決済ロジックへの影響なし"},
+		},
+		{
+			name: "review focus hidden when disabled",
+			output: analyzepr.Output{
+				RiskLevel:   entity.RiskLevelLow,
+				ReviewFocus: []string{"注意点"},
+			},
+			cfg: entity.PrismConfig{
+				Output: entity.OutputConfig{
+					Support: entity.SupportConfig{ReviewFocus: false},
+				},
+			},
+			checks: []string{},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := formatSummary(tt.output)
+			got := buildSummary(tt.output, tt.cfg)
 			for _, s := range tt.checks {
 				if !strings.Contains(got, s) {
-					t.Errorf("summary %q does not contain %q", got, s)
+					t.Errorf("summary does not contain %q\ngot: %s", s, got)
 				}
+			}
+			if tt.name == "review focus hidden when disabled" && strings.Contains(got, "注意点") {
+				t.Errorf("summary should not contain hidden review focus")
 			}
 		})
 	}

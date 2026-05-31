@@ -38,7 +38,7 @@ func (i *Interactor) Execute(ctx context.Context, input Input) error {
 		return err
 	}
 
-	if err := i.check.PostResult(ctx, input.InstallationID, input.RepoFullName, input.PRNumber, result); err != nil {
+	if err := i.check.PostResult(ctx, input.InstallationID, input.RepoFullName, input.PRNumber, result, cfg); err != nil {
 		return err
 	}
 

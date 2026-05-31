@@ -27,7 +27,7 @@ type AnalyzerUseCase interface {
 }
 
 type CheckRepository interface {
-	PostResult(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output) error
+	PostResult(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output, cfg entity.PrismConfig) error
 }
 
 type LabelRepository interface {

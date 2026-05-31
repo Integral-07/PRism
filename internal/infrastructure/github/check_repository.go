@@ -3,6 +3,7 @@ package github
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/Integral-07/prism/internal/domain/entity"
 	analyzepr "github.com/Integral-07/prism/internal/usecase/analyze_pr"
@@ -21,7 +22,7 @@ func NewCheckRepository(appID int64, privateKey []byte) *CheckRepository {
 	}
 }
 
-func (r *CheckRepository) PostResult(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output) error {
+func (r *CheckRepository) PostResult(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output, cfg entity.PrismConfig) error {
 	client, err := r.clientFor(installationID)
 	if err != nil {
 		return err
@@ -40,8 +41,8 @@ func (r *CheckRepository) PostResult(ctx context.Context, installationID int64, 
 		Status:     gh.Ptr("completed"),
 		Conclusion: gh.Ptr(conclusion(result.RiskLevel)),
 		Output: &gh.CheckRunOutput{
-			Title:   gh.Ptr("PRism Analysis"),
-			Summary: gh.Ptr(formatSummary(result)),
+			Title:   gh.Ptr(buildTitle(result, cfg)),
+			Summary: gh.Ptr(buildSummary(result, cfg)),
 		},
 	}
 
@@ -56,11 +57,55 @@ func conclusion(level entity.RiskLevel) string {
 	return "success"
 }
 
-func formatSummary(o analyzepr.Output) string {
-	return fmt.Sprintf(
-		"**Risk Level**: %s %s\n**Priority Score**: %d / 5\n**Estimated Review Time**: %d min",
-		o.RiskLevel.Emoji(), o.RiskLevel,
-		o.PriorityScore,
-		o.EstimatedMinutes,
-	)
+func buildTitle(o analyzepr.Output, cfg entity.PrismConfig) string {
+	var parts []string
+	if cfg.Output.Triage.RiskLevel {
+		parts = append(parts, fmt.Sprintf("%s %s", o.RiskLevel.Emoji(), o.RiskLevel))
+	}
+	if cfg.Output.Triage.PriorityScore {
+		parts = append(parts, fmt.Sprintf("優先度 %d/5", o.PriorityScore))
+	}
+	if cfg.Output.Triage.EstimatedReviewTime {
+		parts = append(parts, fmt.Sprintf("推定%dmin", o.EstimatedMinutes))
+	}
+	if len(parts) == 0 {
+		return "PRism Analysis"
+	}
+	return strings.Join(parts, " · ")
+}
+
+func buildSummary(o analyzepr.Output, cfg entity.PrismConfig) string {
+	var sb strings.Builder
+
+	if o.Summary != "" {
+		sb.WriteString(o.Summary)
+		sb.WriteString("\n\n")
+	}
+
+	if cfg.Output.Triage.FilePriorityList && len(o.Files) > 0 {
+		sb.WriteString("**📁 ファイル優先順位**\n\n")
+		sb.WriteString("| ファイル | リスク | カテゴリ | メモ |\n")
+		sb.WriteString("|---|---|---|---|\n")
+		for _, f := range o.Files {
+			sb.WriteString(fmt.Sprintf("| `%s` | %s %s | %s | %s |\n",
+				f.Path, f.Risk.Emoji(), f.Risk, f.Category, f.Note))
+		}
+		sb.WriteString("\n")
+	}
+
+	if cfg.Output.Support.ReviewFocus && len(o.ReviewFocus) > 0 {
+		sb.WriteString("**📋 重点レビュー箇所**\n\n")
+		for _, focus := range o.ReviewFocus {
+			sb.WriteString(fmt.Sprintf("- %s\n", focus))
+		}
+		sb.WriteString("\n")
+	}
+
+	if o.CustomOutput != "" {
+		sb.WriteString("**💬 カスタム分析**\n\n")
+		sb.WriteString(o.CustomOutput)
+		sb.WriteString("\n")
+	}
+
+	return strings.TrimSpace(sb.String())
 }

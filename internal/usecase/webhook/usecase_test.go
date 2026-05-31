@@ -33,7 +33,7 @@ type mockCheckRepo struct {
 	err    error
 }
 
-func (m *mockCheckRepo) PostResult(_ context.Context, _ int64, _ string, _ int, _ analyzepr.Output) error {
+func (m *mockCheckRepo) PostResult(_ context.Context, _ int64, _ string, _ int, _ analyzepr.Output, _ entity.PrismConfig) error {
 	m.called = true
 	return m.err
 }
