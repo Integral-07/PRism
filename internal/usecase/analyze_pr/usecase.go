@@ -7,14 +7,27 @@ import (
 )
 
 type Input struct {
-	Title string
-	Diff  string
+	Title        string
+	Diff         string
+	CustomPrompt string
+}
+
+type FileRisk struct {
+	Path     string
+	Risk     entity.RiskLevel
+	Category string
+	Note     string
 }
 
 type Output struct {
 	RiskLevel        entity.RiskLevel
+	RiskReasons      []string
 	PriorityScore    int
+	Summary          string
+	Files            []FileRisk
+	ReviewFocus      []string
 	EstimatedMinutes int
+	CustomOutput     string
 }
 
 type UseCase interface {

@@ -38,8 +38,9 @@ func main() {
 	}
 
 	labelRepo := infraGitHub.NewLabelRepository(cfg.GitHubAppID, privateKey)
+	configRepo := infraGitHub.NewConfigRepository(cfg.GitHubAppID, privateKey)
 	analyzerUC := analyzeprUC.NewInteractor(llmRepo)
-	uc := webhookUC.NewInteractor(prRepo, analyzerUC, checkRepo, labelRepo)
+	uc := webhookUC.NewInteractor(prRepo, analyzerUC, checkRepo, labelRepo, configRepo)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
