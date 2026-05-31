@@ -48,6 +48,15 @@ func (m *mockLabelRepo) SyncLabels(_ context.Context, _ int64, _ string, _ int, 
 	return m.err
 }
 
+type mockConfigRepo struct {
+	cfg entity.PrismConfig
+	err error
+}
+
+func (m *mockConfigRepo) Get(_ context.Context, _ int64, _ string) (entity.PrismConfig, error) {
+	return m.cfg, m.err
+}
+
 func TestInteractor_Execute(t *testing.T) {
 	ctx := context.Background()
 	input := webhook.Input{
@@ -61,6 +70,7 @@ func TestInteractor_Execute(t *testing.T) {
 		PriorityScore:    1,
 		EstimatedMinutes: 5,
 	}
+	defaultCfg := &mockConfigRepo{cfg: entity.DefaultPrismConfig()}
 
 	tests := []struct {
 		name        string
@@ -68,6 +78,7 @@ func TestInteractor_Execute(t *testing.T) {
 		analyzer    *mockAnalyzerUC
 		check       *mockCheckRepo
 		label       *mockLabelRepo
+		config      *mockConfigRepo
 		wantErr     bool
 		wantChecked bool
 		wantLabeled bool
@@ -78,6 +89,7 @@ func TestInteractor_Execute(t *testing.T) {
 			analyzer:    &mockAnalyzerUC{result: okResult},
 			check:       &mockCheckRepo{},
 			label:       &mockLabelRepo{},
+			config:      defaultCfg,
 			wantChecked: true,
 			wantLabeled: true,
 		},
@@ -87,6 +99,18 @@ func TestInteractor_Execute(t *testing.T) {
 			analyzer:    &mockAnalyzerUC{},
 			check:       &mockCheckRepo{},
 			label:       &mockLabelRepo{},
+			config:      defaultCfg,
+			wantErr:     true,
+			wantChecked: false,
+			wantLabeled: false,
+		},
+		{
+			name:        "config repo error",
+			pr:          &mockPRRepo{diff: "diff content"},
+			analyzer:    &mockAnalyzerUC{},
+			check:       &mockCheckRepo{},
+			label:       &mockLabelRepo{},
+			config:      &mockConfigRepo{err: errors.New("config error")},
 			wantErr:     true,
 			wantChecked: false,
 			wantLabeled: false,
@@ -97,6 +121,7 @@ func TestInteractor_Execute(t *testing.T) {
 			analyzer:    &mockAnalyzerUC{err: errors.New("gemini error")},
 			check:       &mockCheckRepo{},
 			label:       &mockLabelRepo{},
+			config:      defaultCfg,
 			wantErr:     true,
 			wantChecked: false,
 			wantLabeled: false,
@@ -107,6 +132,7 @@ func TestInteractor_Execute(t *testing.T) {
 			analyzer:    &mockAnalyzerUC{result: okResult},
 			check:       &mockCheckRepo{err: errors.New("check error")},
 			label:       &mockLabelRepo{},
+			config:      defaultCfg,
 			wantErr:     true,
 			wantChecked: true,
 			wantLabeled: false,
@@ -117,6 +143,7 @@ func TestInteractor_Execute(t *testing.T) {
 			analyzer:    &mockAnalyzerUC{result: okResult},
 			check:       &mockCheckRepo{},
 			label:       &mockLabelRepo{err: errors.New("label error")},
+			config:      defaultCfg,
 			wantErr:     true,
 			wantChecked: true,
 			wantLabeled: true,
@@ -125,7 +152,7 @@ func TestInteractor_Execute(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			uc := webhook.NewInteractor(tt.pr, tt.analyzer, tt.check, tt.label)
+			uc := webhook.NewInteractor(tt.pr, tt.analyzer, tt.check, tt.label, tt.config)
 			err := uc.Execute(ctx, input)
 
 			if (err != nil) != tt.wantErr {

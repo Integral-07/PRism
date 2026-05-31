@@ -23,29 +23,27 @@ func TestInteractor_Execute(t *testing.T) {
 	input := analyzepr.Input{Title: "feat: add payment", Diff: "+ func Pay() {}"}
 
 	tests := []struct {
-		name       string
-		llmResp    string
-		llmErr     error
-		wantOutput analyzepr.Output
-		wantErr    bool
+		name            string
+		llmResp         string
+		llmErr          error
+		wantRiskLevel   entity.RiskLevel
+		wantPriority    int
+		wantMinutes     int
+		wantErr         bool
 	}{
 		{
-			name:    "success low risk",
-			llmResp: `{"risk_level":"low","priority_score":2,"estimated_minutes":10}`,
-			wantOutput: analyzepr.Output{
-				RiskLevel:        entity.RiskLevelLow,
-				PriorityScore:    2,
-				EstimatedMinutes: 10,
-			},
+			name:          "success low risk",
+			llmResp:       `{"risk_level":"low","priority_score":2,"estimated_minutes":10}`,
+			wantRiskLevel: entity.RiskLevelLow,
+			wantPriority:  2,
+			wantMinutes:   10,
 		},
 		{
-			name:    "success high risk",
-			llmResp: `{"risk_level":"high","priority_score":5,"estimated_minutes":60}`,
-			wantOutput: analyzepr.Output{
-				RiskLevel:        entity.RiskLevelHigh,
-				PriorityScore:    5,
-				EstimatedMinutes: 60,
-			},
+			name:          "success high risk",
+			llmResp:       `{"risk_level":"high","priority_score":5,"estimated_minutes":60}`,
+			wantRiskLevel: entity.RiskLevelHigh,
+			wantPriority:  5,
+			wantMinutes:   60,
 		},
 		{
 			name:    "llm error",
@@ -72,8 +70,16 @@ func TestInteractor_Execute(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("wantErr=%v, got err=%v", tt.wantErr, err)
 			}
-			if !tt.wantErr && got != tt.wantOutput {
-				t.Errorf("want %+v, got %+v", tt.wantOutput, got)
+			if !tt.wantErr {
+				if got.RiskLevel != tt.wantRiskLevel {
+					t.Errorf("RiskLevel: want %v, got %v", tt.wantRiskLevel, got.RiskLevel)
+				}
+				if got.PriorityScore != tt.wantPriority {
+					t.Errorf("PriorityScore: want %d, got %d", tt.wantPriority, got.PriorityScore)
+				}
+				if got.EstimatedMinutes != tt.wantMinutes {
+					t.Errorf("EstimatedMinutes: want %d, got %d", tt.wantMinutes, got.EstimatedMinutes)
+				}
 			}
 		})
 	}

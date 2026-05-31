@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 
+	"github.com/Integral-07/prism/internal/domain/entity"
 	analyzepr "github.com/Integral-07/prism/internal/usecase/analyze_pr"
 )
 
@@ -31,4 +32,8 @@ type CheckRepository interface {
 
 type LabelRepository interface {
 	SyncLabels(ctx context.Context, installationID int64, repoFullName string, prNumber int, result analyzepr.Output) error
+}
+
+type ConfigRepository interface {
+	Get(ctx context.Context, installationID int64, repoFullName string) (entity.PrismConfig, error)
 }

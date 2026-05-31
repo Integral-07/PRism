@@ -11,10 +11,11 @@ type Interactor struct {
 	analyzer AnalyzerUseCase
 	check    CheckRepository
 	label    LabelRepository
+	config   ConfigRepository
 }
 
-func NewInteractor(pr PRRepository, analyzer AnalyzerUseCase, check CheckRepository, label LabelRepository) *Interactor {
-	return &Interactor{pr: pr, analyzer: analyzer, check: check, label: label}
+func NewInteractor(pr PRRepository, analyzer AnalyzerUseCase, check CheckRepository, label LabelRepository, config ConfigRepository) *Interactor {
+	return &Interactor{pr: pr, analyzer: analyzer, check: check, label: label, config: config}
 }
 
 func (i *Interactor) Execute(ctx context.Context, input Input) error {
@@ -23,9 +24,15 @@ func (i *Interactor) Execute(ctx context.Context, input Input) error {
 		return err
 	}
 
+	cfg, err := i.config.Get(ctx, input.InstallationID, input.RepoFullName)
+	if err != nil {
+		return err
+	}
+
 	result, err := i.analyzer.Execute(ctx, analyzepr.Input{
-		Title: input.Title,
-		Diff:  diff,
+		Title:        input.Title,
+		Diff:         diff,
+		CustomPrompt: cfg.Custom,
 	})
 	if err != nil {
 		return err
