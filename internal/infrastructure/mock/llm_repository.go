@@ -8,10 +8,10 @@ func NewLLMRepository() *LLMRepository { return &LLMRepository{} }
 
 func (r *LLMRepository) Generate(_ context.Context, _ string) (string, error) {
 	return `{
-  "risk_level": "medium",
-  "risk_reasons": ["ビジネスロジックの変更", "既存関数の修正"],
-  "priority_score": 3,
-  "summary": "READMEの挨拶文を変更。影響範囲は限定的。",
+  "risk_level": "low",
+  "risk_reasons": ["ドキュメントのみの変更", "ロジックへの影響なし"],
+  "priority_score": 1,
+  "summary": "READMEの挨拶文を 'Hello' から 'Hello, PRism!' に変更。影響範囲はドキュメントのみ。",
   "files": [
     {
       "path": "README.md",
@@ -26,7 +26,7 @@ func (r *LLMRepository) Generate(_ context.Context, _ string) (string, error) {
   ],
   "breaking_changes": [],
   "coverage_drop": [],
-  "estimated_minutes": 15,
-  "custom_output": ""
+  "estimated_minutes": 5,
+  "custom_output": "はい、このPRはREADMEのみの変更です。ソースコードや設定ファイルへの影響は一切ありません。"
 }`, nil
 }
