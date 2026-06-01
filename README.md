@@ -9,6 +9,11 @@ PRismは、GitHub App として動作し、PRが開かれた瞬間にdiffを分�
 - **優先度スコア**: 1〜5のスコアでPRの緊急度を示す
 - **リスクレベル**: high / medium / low の3段階
 - **レビュー推定時間**: このPRに何分かかるかの目安
+- **ファイル優先順位**: 変更ファイルごとのリスクとカテゴリ
+- **破壊的変更 / カバレッジ低下**: 影響範囲の検出
+- **カスタム分析**: リポジトリごとの追加指示に対応
+
+出力内容はリポジトリに `.prism.yml` を置くことで制御できます。
 
 ## アーキテクチャ
 
@@ -20,11 +25,12 @@ internal/
   domain/             # エンティティ (外部依存なし)
   usecase/            # アプリケーションロジック
     webhook/          # Webhook受信 → 分析 → Check結果投稿
-    analyze_pr/       # Gemini でdiffを分析
+    analyze_pr/       # LLM でdiffを分析
   infrastructure/     # 外部システムの実装
-    github/           # GitHub API (diff取得 / Check Run作成)
+    github/           # GitHub API (diff取得 / Check Run作成 / ラベル付与)
     gemini/           # Gemini API (LLM)
     config/           # 環境変数ロード
+    mock/             # ローカル開発・デモ用モック
   handler/            # HTTPハンドラー + 署名検証ミドルウェア
 ```
 
@@ -36,10 +42,33 @@ GitHub Webhook
 handler/webhook
     ↓
 usecase/webhook
-    ├─ PRRepository.GetDiff     (GitHub API)
-    ├─ AnalyzerUseCase.Execute  (Gemini API)
-    └─ CheckRepository.PostResult (GitHub Checks API)
+    ├─ PRRepository.GetDiff        (GitHub API)
+    ├─ ConfigRepository.Get        (.prism.yml 取得)
+    ├─ AnalyzerUseCase.Execute     (Gemini API)
+    ├─ CheckRepository.PostResult  (GitHub Checks API)
+    └─ LabelRepository.SyncLabels  (GitHub Labels API)
 ```
+
+## .prism.yml による出力カスタマイズ
+
+リポジトリのルートに `.prism.yml` を置くと、表示する項目を制御できます。
+
+```yaml
+output:
+  triage:
+    priority_score: true        # 優先度スコア (1〜5)
+    risk_level: true            # リスクレベル (high / medium / low)
+    estimated_review_time: true # レビュー推定時間
+    file_priority_list: true    # ファイル優先順位テーブル
+  support:
+    review_focus: true          # 重点レビュー箇所
+    breaking_changes: true      # 破壊的変更の検出
+    coverage_drop: true         # カバレッジ低下の懸念
+custom: |
+  追加の分析指示をここに書く。結果は「カスタム分析」セクションに表示される。
+```
+
+`.prism.yml` が存在しない場合はすべての項目が有効になります。
 
 ## セットアップ
 
@@ -70,6 +99,8 @@ usecase/webhook
 |---|---|
 | Pull requests | Read |
 | Checks | Write |
+| Contents | Read |
+| Issues | Write |
 
 4. **Where can this GitHub App be installed?** → `Only on this account`
 
@@ -145,11 +176,24 @@ GitHub App をインストールしたリポジトリで **PR を作成または
 数秒後、PR の **Checks タブ** に `PRism` の結果が表示される:
 
 ```
-✅ PRism Analysis
+🟡 medium · 優先度 3/5 · 推定15min
 
-Risk Level: 🟢 low
-Priority Score: 2 / 5
-Estimated Review Time: 10 min
+READMEの挨拶文を変更。影響範囲は限定的。
+
+📁 ファイル優先順位
+
+| ファイル    | リスク   | カテゴリ | メモ                         |
+|-------------|----------|----------|------------------------------|
+| README.md   | 🟢 low   | docs     | 挨拶文の変更のみ。ロジックへの影響なし。 |
+
+📋 重点レビュー箇所
+
+- 変更内容は軽微で、レビュー優先度は低い
+- 他ファイルへの影響がないか確認
+
+💬 カスタム分析
+
+はい、このPRはREADMEのみの変更です。
 ```
 
 ---
@@ -162,11 +206,17 @@ Estimated Review Time: 10 min
 go test ./...
 ```
 
+CI は GitHub Actions で自動実行されます（push / PR のたびに `go test ./...` が走ります）。
+
 ### ビルド
 
 ```bash
 go build -o bin/prism ./cmd/server
 ```
+
+### モックを使ったローカル確認
+
+`infrastructure/mock` に固定レスポンスを返すモック実装があります。Gemini API キーなしでローカル動作確認したい場合に `main.go` で差し替えて使用してください。
 
 ## デプロイ
 
