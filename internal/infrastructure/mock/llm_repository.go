@@ -24,6 +24,8 @@ func (r *LLMRepository) Generate(_ context.Context, _ string) (string, error) {
     "変更内容は軽微で、レビュー優先度は低い",
     "他ファイルへの影響がないか確認"
   ],
+  "breaking_changes": [],
+  "coverage_drop": [],
   "estimated_minutes": 15,
   "custom_output": ""
 }`, nil

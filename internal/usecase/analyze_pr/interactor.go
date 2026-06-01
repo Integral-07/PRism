@@ -49,6 +49,8 @@ diff:
     }
   ],
   "review_focus": ["注意すべき点1", "注意すべき点2"],
+  "breaking_changes": ["破壊的変更1", "破壊的変更2"],
+  "coverage_drop": ["カバレッジ低下が懸念される箇所1"],
   "estimated_minutes": レビューの推定所要時間（分）,
   "custom_output": ""
 }`, input.Title, input.Diff))
@@ -74,6 +76,8 @@ type llmResponse struct {
 	Summary          string        `json:"summary"`
 	Files            []llmFileRisk `json:"files"`
 	ReviewFocus      []string      `json:"review_focus"`
+	BreakingChanges  []string      `json:"breaking_changes"`
+	CoverageDrop     []string      `json:"coverage_drop"`
 	EstimatedMinutes int           `json:"estimated_minutes"`
 	CustomOutput     string        `json:"custom_output"`
 }
@@ -110,6 +114,8 @@ func parseResponse(resp string) (Output, error) {
 		Summary:          r.Summary,
 		Files:            files,
 		ReviewFocus:      r.ReviewFocus,
+		BreakingChanges:  r.BreakingChanges,
+		CoverageDrop:     r.CoverageDrop,
 		EstimatedMinutes: r.EstimatedMinutes,
 		CustomOutput:     r.CustomOutput,
 	}, nil

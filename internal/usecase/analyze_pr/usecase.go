@@ -26,6 +26,8 @@ type Output struct {
 	Summary          string
 	Files            []FileRisk
 	ReviewFocus      []string
+	BreakingChanges  []string
+	CoverageDrop     []string
 	EstimatedMinutes int
 	CustomOutput     string
 }

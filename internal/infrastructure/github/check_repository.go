@@ -101,6 +101,22 @@ func buildSummary(o analyzepr.Output, cfg entity.PrismConfig) string {
 		sb.WriteString("\n")
 	}
 
+	if cfg.Output.Support.BreakingChanges && len(o.BreakingChanges) > 0 {
+		sb.WriteString("**⚠️ 破壊的変更**\n\n")
+		for _, bc := range o.BreakingChanges {
+			sb.WriteString(fmt.Sprintf("- %s\n", bc))
+		}
+		sb.WriteString("\n")
+	}
+
+	if cfg.Output.Support.CoverageDrop && len(o.CoverageDrop) > 0 {
+		sb.WriteString("**📉 カバレッジ低下の懸念**\n\n")
+		for _, cd := range o.CoverageDrop {
+			sb.WriteString(fmt.Sprintf("- %s\n", cd))
+		}
+		sb.WriteString("\n")
+	}
+
 	if o.CustomOutput != "" {
 		sb.WriteString("**💬 カスタム分析**\n\n")
 		sb.WriteString(o.CustomOutput)
